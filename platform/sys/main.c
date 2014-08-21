@@ -12,6 +12,7 @@
 #include <mailbox.h>
 
 void main_init(void);
+void main_delete(int id);
 
 static unsigned int this_owner = 0;
 
@@ -31,18 +32,26 @@ printf("CREATE ...\n");
 	mbox_show();
 printf("mbox1=%d, mbox2=%d mbox3=%d mbox4=%d mbox5=%d\n", mbox1, mbox2, mbox3, mbox4, mbox5);
 
-printf("DELETE ... %d\n", mbox3);
-	mbox_delete(mbox3);
-	mbox_show();
-printf("DELETE ... %d\n", mbox2);
-	mbox_delete(mbox2);
-	mbox_show();
-printf("DELETE ... %d\n", mbox2);
-	mbox_delete(mbox2);
-	mbox_show();
+	main_delete(mbox3);
+	main_delete(mbox2);
+	main_delete(mbox2);
+	main_delete(mbox4);
+	main_delete(mbox5);
+	main_delete(mbox1);
+	main_delete(mbox5);
 
 	printf("TungstenBox(tm) is alive!!!\n");
 	exit(0);
+}
+
+void main_delete(int id)
+{
+	int status;
+
+printf("DELETE ... %d ", id);
+	status = mbox_delete(id);
+printf("status=%d\n", status);
+	mbox_show();
 }
 
 void main_init(void)
