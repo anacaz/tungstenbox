@@ -31,7 +31,9 @@ struct mbox
 
 typedef enum mailtype mailtype_e;
 
-enum mailtype { MT_ALERT, MT_EVENT, MT_ALARM, MT_FAULT };
+enum mailtype { MT_INFO, MT_ALERT, MT_EVENT, MT_ALARM, MT_FAULT };
+
+typedef struct mailhdr mailhdr_t;
 
 struct mailhdr
 {
@@ -43,13 +45,9 @@ struct mailhdr
 struct mail
 {
 	mail_t		*next;			/* Next available message */
-	struct
-	{
-		unsigned int	from;		/* Sender id */
-		mailtype_e	type;		/* Mail type */
-		time_t		time;		/* Timestamp */
-	} header;
-	char		*msg;			/* Mail message */
+	mailhdr_t	hdr;
+	size_t		size;
+	void		*body;			/* Mail body */
 };
 
 /*
@@ -58,8 +56,19 @@ struct mail
 int mbox_create(char *name, unsigned int owner, void (*client)(void));
 int mbox_send(unsigned int owner, void *mail);
 void *mbox_read(unsigned int id);
-unsigned int mbox_assign(void);
 void mbox_show(void);
-void mbox_delete(unsigned int id);
+int mbox_delete(unsigned int id);
+
+/*
+ * Mail message APIs.
+ */
+mail_t *mail_create(unsigned int id, mailtype_e type, void *body, size_t size);
+
+/*
+ * Ownership and authentication routines.
+ */
+unsigned int set_owner(void);
+unsigned int get_owner(void);
+int confirm_owner(unsigned int owner);
 
 #endif /* !_mailbox.h */

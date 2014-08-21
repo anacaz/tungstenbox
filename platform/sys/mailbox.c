@@ -39,12 +39,12 @@ int mbox_create(char *name, unsigned int owner, void (*client)(void))
 	printf("Creating mailbox \"%s\" ... ", name);
 	if (!(mbp = malloc(sizeof(*mbp))))
 	{
-		printf("Error: unable to allocate resource!!!\n");
+		printf("error: unable to allocate resource!!!\n");
 		return(-1);
 	}
 	if (!(mbp->name = strdup(name)))
 	{
-		printf("Error: unable to duplicate name!!!\n");
+		printf("error: unable to duplicate name!!!\n");
 		free(mbp);
 		return(-1);
 	}
@@ -101,23 +101,6 @@ int mbox_delete(unsigned int id)
 	return(0);
 }
 
-/*
- * Find the mailbox associated with the caller specified mailbox id.
- */
-static mbox_t *mbox_find(unsigned int id)
-{
-	mbox_t *mbp;
-
-	for (mbp = mbox_master; mbp; mbp = mbp->link)
-	{
-		if (mbp->id == id)
-		{
-			return(mbp);
-		}
-	}
-	return(0);
-}
-
 void mbox_show(void)
 {
 	mbox_t *mbp;
@@ -138,6 +121,23 @@ void mbox_show(void)
 }
 
 /*
+ * Find the mailbox associated with the caller specified mailbox id.
+ */
+static mbox_t *mbox_find(unsigned int id)
+{
+	mbox_t *mbp;
+
+	for (mbp = mbox_master; mbp; mbp = mbp->link)
+	{
+		if (mbp->id == id)
+		{
+			return(mbp);
+		}
+	}
+	return(0);
+}
+
+/*
  * Assign a unique mbox id.
  */
 static unsigned int mbox_assign(void)
@@ -152,6 +152,32 @@ static unsigned int mbox_assign(void)
 /*
  * Mail APIs.
  */
+/*
+ * Create a mail message from caller specified mailbox.
+ */
+mail_t *mail_create(unsigned int id, mailtype_e type, void *body, size_t size)
+{
+	mbox_t *mbp;
+	mail_t *mailp;
+
+	if (!(mbp = mbox_find(id)))
+	{
+		printf("error: sender mbox id %d is invalid!!!\n", id);
+		return(0);
+	}
+
+	confirm_owner(mbp->owner);
+
+	printf("Creating mail message from owner(%08X)  mbox(%s) ... \n", mbp->owner, mbp->name);
+	if (!(mailp = (mail_t *)malloc(sizeof(*mailp))))
+	{
+		printf("error: unable to allocate resource!!!\n");
+		return(0);
+	}
+
+	return(mailp);
+}
+
 int mail_send(unsigned int owner, void *mail)
 {
 	return(0);
@@ -165,7 +191,21 @@ void *mail_read(unsigned int id)
 	return(0);
 }
 
-void *mail_create()
+static unsigned int this_owner = 0;
+
+unsigned int set_owner(void)
 {
-	return(0);
+	if (!this_owner)
+		this_owner = rand();
+	return(get_owner());
+}
+
+unsigned int get_owner(void)
+{
+	return(this_owner);
+}
+
+int confirm_owner(unsigned int owner)
+{
+	return(owner == this_owner);
 }
