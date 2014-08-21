@@ -8,28 +8,58 @@
  * rfa - 140820
  */
 #include <stdint.h>
+#include <time.h>
 
-typedef struct mailbox mailbox_t;
+typedef struct mbox mbox_t;
+typedef struct mail mail_t;
 
-struct mailbox
+struct mbox
 {
-	mailbox_t	*link;
+	mbox_t		*link;
+	char		*name;
 	unsigned int	id;			/* Identifier */
 	unsigned int	owner;			/* Owner */
-	size_t		size;			/* Mailbox capacity (in bytes) */
-	size_t		used;			/* Used space (in bytes) */
-	unsigned int	unread;			/* Unread messages (count) */
-	void		*mbox;			/* Mailbox buffer */
-	void		(*alert)(void);		/* Mailbox call back handler */
+	mail_t		*mbox;			/* Mailbox buffer */
+	void		(*client)(void);	/* Mailbox call back handler */
+};
+
+/*
+ * The mail messages themselves are completely self contained.  One-to-many, many-to-one, and
+ * one-to-one message transmission.  The system crosses the "plane" with mail messages and
+ * guaranteed delivery methods.
+ */
+
+typedef enum mailtype mailtype_e;
+
+enum mailtype { MT_ALERT, MT_EVENT, MT_ALARM, MT_FAULT };
+
+struct mailhdr
+{
+	unsigned int	from;		/* Sender id */
+	mailtype_e	type;		/* Mail type */
+	time_t		time;		/* Timestamp */
+};
+
+struct mail
+{
+	mail_t		*next;			/* Next available message */
+	struct
+	{
+		unsigned int	from;		/* Sender id */
+		mailtype_e	type;		/* Mail type */
+		time_t		time;		/* Timestamp */
+	} header;
+	char		*msg;			/* Mail message */
 };
 
 /*
  * Mailbox APIs.
  */
-int mailbox_init(unsigned int owner, size_t size, void (*alert)(void));
-int mailbox_send(unsigned int owner, void *mail);
-void *mailbox_read(unsigned int id);
-unsigned int mailbox_assign(void);
-void mailbox_show(void);
+int mbox_create(char *name, unsigned int owner, void (*client)(void));
+int mbox_send(unsigned int owner, void *mail);
+void *mbox_read(unsigned int id);
+unsigned int mbox_assign(void);
+void mbox_show(void);
+void mbox_delete(unsigned int id);
 
 #endif /* !_mailbox.h */
