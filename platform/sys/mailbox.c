@@ -36,7 +36,7 @@ int mbox_create(char *name, unsigned int owner, void (*client)(void))
 {
 	mbox_t *mbp;
 
-	printf("Creating mailbox \"%s\" ... ", name);
+	// printf("Creating mailbox \"%s\" ... ", name);
 	if (!(mbp = malloc(sizeof(*mbp))))
 	{
 		printf("error: unable to allocate resource!!!\n");
@@ -54,7 +54,7 @@ int mbox_create(char *name, unsigned int owner, void (*client)(void))
 	mbp->client = client;
 	mbp->link = mbox_master;
 	mbox_master = mbp;
-	printf("id=%03d owner=%08X mbox=%p client=%p\n", mbp->id, mbp->owner, mbp->mbox, mbp->client);
+	// printf("id=%03d owner=%08X mbox=%p client=%p\n", mbp->id, mbp->owner, mbp->mbox, mbp->client);
 	return(mbp->id);
 }
 
@@ -112,9 +112,6 @@ void mbox_show(void)
 	}
 	for (mbp = mbox_master; mbp; mbp = mbp->link)
 	{
-// printf("SHOW mbp=%p ", mbp);
-// printf("mbp->name=%s ", mbp->name);
-// printf("mbp->link=%p\n", mbp->link);
 		printf("\t%-20s id=%03d owner=%08X mbox=%p client=%p\n", mbp->name,
 			mbp->id, mbp->owner, mbp->mbox, mbp->client);
 	}

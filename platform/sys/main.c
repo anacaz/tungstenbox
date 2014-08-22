@@ -8,76 +8,99 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <pthread.h>
 #include <mailbox.h>
 
 void main_init(void);
-void main_delete(int id);
 void *main_thread(void *);
+
+typedef struct threadctl threadctl_t;
+
+struct threadctl
+{
+	pthread_t	t;			/* pthread instance */
+	char		name[32];		/* thread name */
+	int		tid;			/* thread identifier */
+	int		mid;			/* thread's mail box */
+};
+
+#define THREADMAX	25
+
+static threadctl_t threads[THREADMAX];
 
 int main(int argc, char **argv)
 {
-	int mbox1, mbox2, mbox3, mbox4, mbox5;;
-	static pthread_t t1, t2, t3, t4, t5;
-	volatile int x;
+	int tid;
 
 	main_init();
 
 printf("CREATE ...\n");
-	pthread_create(&t1, 0, main_thread, (void *)&mbox1);
-	pthread_create(&t2, 0, main_thread, (void *)&mbox2);
-	pthread_create(&t3, 0, main_thread, (void *)&mbox3);
-	pthread_create(&t4, 0, main_thread, (void *)&mbox4);
-	pthread_create(&t5, 0, main_thread, (void *)&mbox5);
+	for (tid = 0; tid < THREADMAX; ++tid)
+	{
+		/*
+		 * Each mail box is created in the main_thread() start up routine.
+		 */
+		pthread_create(&threads[tid].t, 0, main_thread, (void *)&threads[tid]);
+		threads[tid].tid = tid;
+	}
 
-	for (x = 0; x < 1000; ++x) ;
+	sleep(2);
+	// mbox_show();
 
-	mbox_show();
+	/*
+	 * BUG!!!  This only deletes the mailboxes now we need to delete the threads!!!
+	 */
+	for (tid = 0; tid < THREADMAX; ++tid)
+	{
+		int status;
 
-printf("mbox1=%d, mbox2=%d mbox3=%d mbox4=%d mbox5=%d\n", mbox1, mbox2, mbox3, mbox4, mbox5);
+		printf("deleting ... ");
+		status = mbox_delete(threads[tid].mid);
+		printf("%d = mbox_delete(%d)\n", status, threads[tid].mid);
+	}
 
-	for (x = 0; x < 1000; ++x) ;
-
-	main_delete(mbox3);
-	main_delete(mbox2);
-	main_delete(mbox2);
-	main_delete(mbox4);
-	main_delete(mbox5);
-	main_delete(mbox1);
-	main_delete(mbox5);
+	int mbox1;
 
 	mbox1 = mbox_create("control", get_owner(), 0);
 
 	mail_t *mailp = mail_create(mbox1, MT_INFO, 0, 0);
 
-	printf("TungstenBox(tm) is alive!!!\n");
+	printf("TungstenBox(tm) isalive!!!\n");
 	exit(0);
 }
 
 void *main_thread(void *arg)
 {
-	char name[64];
+	threadctl_t *tp;
+	unsigned int owner = get_owner();
 
-	sprintf(name, "%s-%d", "thread", rand());
-	*(int *)arg = mbox_create(name, get_owner(), 0);
-	printf("\nHello World %s\n", name);
+	tp = (threadctl_t *)arg;
+	sprintf(tp->name, "%s-%d", "thread", tp->tid);
+	tp->mid = mbox_create(tp->name, owner, 0);
+printf("creating ... %d = mbox_create(%s, %08X, %d)\n", tp->mid, tp->name, owner, 0);
 
 	return(0);
 }
 
-void main_delete(int id)
-{
-	int status;
-
-printf("DELETE ... %d ", id);
-	status = mbox_delete(id);
-printf("status=%d\n", status);
-	mbox_show();
-}
+#define THREAD_RESET(X) \
+do \
+{ \
+	threads[tid].tid = -1; \
+	threads[tid].name[0] = '\0'; \
+	threads[tid].mid = 0; \
+} while (0)
 
 void main_init(void)
 {
+	int tid;
+
+	for (tid = 0; tid < THREADMAX; ++tid)
+	{
+		THREAD_RESET(tid);
+	}
+
 printf("%s: this_owner=%X\n", __FUNCTION__, get_owner());
 	set_owner();
 printf("%s: this_owner=%X\n", __FUNCTION__, get_owner());
