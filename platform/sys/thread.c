@@ -105,7 +105,7 @@ int thread_stop(int tid)
 {
 	int index, status;
 
-	if ((index = thread_find(-1)) == -1)
+	if ((index = thread_find(tid)) == -1)
 		return(-1);
 	status = mbox_delete(threads[index].mid);
 	printf("%d = mbox_delete(%d)\n", status, threads[index].mid);

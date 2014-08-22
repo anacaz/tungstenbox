@@ -18,22 +18,37 @@
 void main_init(void);
 // void *main_thread(void *);
 
-int tidlist[25];
+int *tidlist = 0;
 
 int main(int argc, char **argv)
 {
 	int index;
 
+	if (!--argc)
+	{
+		printf("Usage: %s <count>\n", *argv);
+		exit(0);
+	}
+
+	int count = strtol(*++argv, (char **)0, 0);
+	printf("count = %d\n", count);
+
+	if (!(tidlist = (int *)malloc(sizeof(int)*count)))
+	{
+		printf("unable to allocate tidlist\n");
+		exit(-1);
+	}
+
 	main_init();
 	thread_init();
 
-	for (index = 0; index < 25; ++index)
+	for (index = 0; index < count; ++index)
 	{
 		tidlist[index] = -1;
 	}
 
 printf("CREATE ...\n");
-	for (index = 0; index < 10; ++index)
+	for (index = 0; index < count; ++index)
 	{
 		/*
 		 * Each mail box is created in the main_thread() start up routine.
@@ -48,14 +63,12 @@ printf("CREATE ...\n");
 	/*
 	 * BUG!!!  This only deletes the mailboxes now we need to delete the threads!!!
 	 */
-	for (index = 0; index < 10; ++index)
+	for (index = 0; index < count; ++index)
 	{
 		int status;
 
 		printf("deleting ... ");
 		status = thread_stop(tidlist[index]);
-		if (status == -1)
-			printf("\n");
 	}
 
 	int mbox1;
@@ -67,21 +80,6 @@ printf("CREATE ...\n");
 	printf("TungstenBox(tm) isalive!!!\n");
 	exit(0);
 }
-
-#if 0
-void *main_thread(void *arg)
-{
-	threadctl_t *tp;
-	unsigned int owner = get_owner();
-
-	tp = (threadctl_t *)arg;
-	snprintf(tp->name, 31, "thread-%d", tp->tid);
-	tp->mid = mbox_create(tp->name, owner, 0);
-printf("creating ... %d = mbox_create(%s, %08X, %d)\n", tp->mid, tp->name, owner, 0);
-
-	return(0);
-}
-#endif
 
 void main_init(void)
 {
