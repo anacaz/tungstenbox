@@ -11,54 +11,51 @@
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
+
+#include <thread.h>
 #include <mailbox.h>
 
 void main_init(void);
-void *main_thread(void *);
+// void *main_thread(void *);
 
-typedef struct threadctl threadctl_t;
-
-struct threadctl
-{
-	pthread_t	t;			/* pthread instance */
-	char		name[32];		/* thread name */
-	int		tid;			/* thread identifier */
-	int		mid;			/* thread's mail box */
-};
-
-#define THREADMAX	25
-
-static threadctl_t threads[THREADMAX];
+int tidlist[25];
 
 int main(int argc, char **argv)
 {
-	int tid;
+	int index;
 
 	main_init();
+	thread_init();
+
+	for (index = 0; index < 25; ++index)
+	{
+		tidlist[index] = -1;
+	}
 
 printf("CREATE ...\n");
-	for (tid = 0; tid < THREADMAX; ++tid)
+	for (index = 0; index < 10; ++index)
 	{
 		/*
 		 * Each mail box is created in the main_thread() start up routine.
 		 */
-		pthread_create(&threads[tid].t, 0, main_thread, (void *)&threads[tid]);
-		threads[tid].tid = tid;
+		tidlist[index] = thread_new(thread_start);
 	}
 
 	sleep(2);
+	thread_show();
 	// mbox_show();
 
 	/*
 	 * BUG!!!  This only deletes the mailboxes now we need to delete the threads!!!
 	 */
-	for (tid = 0; tid < THREADMAX; ++tid)
+	for (index = 0; index < 10; ++index)
 	{
 		int status;
 
 		printf("deleting ... ");
-		status = mbox_delete(threads[tid].mid);
-		printf("%d = mbox_delete(%d)\n", status, threads[tid].mid);
+		status = thread_stop(tidlist[index]);
+		if (status == -1)
+			printf("\n");
 	}
 
 	int mbox1;
@@ -71,36 +68,23 @@ printf("CREATE ...\n");
 	exit(0);
 }
 
+#if 0
 void *main_thread(void *arg)
 {
 	threadctl_t *tp;
 	unsigned int owner = get_owner();
 
 	tp = (threadctl_t *)arg;
-	sprintf(tp->name, "%s-%d", "thread", tp->tid);
+	snprintf(tp->name, 31, "thread-%d", tp->tid);
 	tp->mid = mbox_create(tp->name, owner, 0);
 printf("creating ... %d = mbox_create(%s, %08X, %d)\n", tp->mid, tp->name, owner, 0);
 
 	return(0);
 }
-
-#define THREAD_RESET(X) \
-do \
-{ \
-	threads[tid].tid = -1; \
-	threads[tid].name[0] = '\0'; \
-	threads[tid].mid = 0; \
-} while (0)
+#endif
 
 void main_init(void)
 {
-	int tid;
-
-	for (tid = 0; tid < THREADMAX; ++tid)
-	{
-		THREAD_RESET(tid);
-	}
-
 printf("%s: this_owner=%X\n", __FUNCTION__, get_owner());
 	set_owner();
 printf("%s: this_owner=%X\n", __FUNCTION__, get_owner());

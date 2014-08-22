@@ -26,6 +26,16 @@ FORWARD static int thread_find(int tid);
 
 static threadctl_t threads[CONFIG_THREADMAX];
 
+void thread_init(void)
+{
+	int index;
+
+	for (index = 0; index < CONFIG_THREADMAX; ++index)
+	{
+		THREAD_RESET(index);
+	}
+}
+
 void thread_reset(int tid)
 {
 	int index;
@@ -42,13 +52,16 @@ void thread_reset(int tid)
  */
 int thread_new(void *(*startup)(void *))
 {
-	int index;
 	threadctl_t *tp;
+	int index;
 
-	if ((index = thread_find(-1)) == -1)
+	index = thread_find(-1);
+printf("%s: %d = thread_find(-1)\n", __FUNCTION__, index);
+	// if ((index = thread_find(-1)) == -1)
+	if (index == -1)
 	{
 		printf("error: no more thread slots available!!!\n");
-		return;
+		return(-1);
 	}
 	/*
 	 * Each mail box is created in the thread_start() start up routine.
@@ -58,7 +71,7 @@ int thread_new(void *(*startup)(void *))
 	snprintf(tp->name, 31, "thread-%d", tp->tid);
 	if (!startup)
 		startup = thread_start;
-	pthread_create(tp->t, 0, startup, (void *)tp);
+	pthread_create(&tp->t, 0, startup, (void *)tp);
 	return(tp->tid);
 }
 
@@ -73,8 +86,30 @@ printf("creating ... %d = mbox_create(%s, %08X, %d)\n", tp->mid, tp->name, owner
 	return(0);
 }
 
-void thread_stop()
+void thread_show(void)
 {
+	int index;
+
+	for (index = 0; index < CONFIG_THREADMAX; ++index)
+	{
+		threadctl_t *tp = &threads[index];
+
+		if (tp->tid == -1)
+			continue;
+		printf("thread(%d): t(%p) mid(%d) func(%p) %s\n", 
+			tp->tid, &tp->t, tp->mid, tp->func, tp->name);
+	}
+}
+
+int thread_stop(int tid)
+{
+	int index, status;
+
+	if ((index = thread_find(-1)) == -1)
+		return(-1);
+	status = mbox_delete(threads[index].mid);
+	printf("%d = mbox_delete(%d)\n", status, threads[index].mid);
+	return(status);
 }
 
 /*
@@ -88,8 +123,10 @@ static int thread_find(int tid)
 {
 	int index;
 
-	for (index = 0; index = CONFIG_THREADMAX; ++index)
+	for (index = 0; index < CONFIG_THREADMAX; ++index)
+	{
 		if (threads[index].tid == tid)
 			return(index);
+	}
 	return(-1);
 }

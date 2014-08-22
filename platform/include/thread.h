@@ -27,8 +27,11 @@ do \
 	threads[X].mid = 0; \
 } while (0)
 
+void thread_init(void);
 void thread_reset(int tid);
-void *thread_start(void *);
 int thread_new(void *(*startup)(void *));
+void *thread_start(void *);
+void thread_show(void);
+int thread_stop(int tid);
 
 #endif /* !_thread_h */
