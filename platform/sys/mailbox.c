@@ -13,7 +13,7 @@
 
 #define FORWARD	/* */
 
-FORWARD static mbox_t *mbox_find(unsigned int id);
+FORWARD static mbox_t *mbox_find(unsigned int mid);
 FORWARD static unsigned int mbox_assign(void);
 
 static mbox_t *mbox_master = 0;
@@ -34,6 +34,7 @@ static mbox_t *mbox_master = 0;
  */
 int mbox_create(char *name, unsigned int owner, void (*client)(void))
 {
+	static char *inbox = "-inbox";
 	mbox_t *mbp;
 
 	// printf("Creating mailbox \"%s\" ... ", name);
@@ -44,10 +45,17 @@ int mbox_create(char *name, unsigned int owner, void (*client)(void))
 	}
 	if (!(mbp->name = strdup(name)))
 	{
-		printf("error: unable to duplicate name!!!\n");
+		printf("error: unable to strdup %s!!!\n", name);
 		free(mbp);
 		return(-1);
 	}
+	if (!(mbp->name = realloc(mbp->name, strlen(inbox))))
+	{
+		printf("error: unable to realloc %s!!!\n", name);
+		free(mbp);
+		return(-1);
+	}
+	strcat(mbp->name, inbox);
 	mbp->id = mbox_assign();
 	mbp->owner = owner;
 	mbp->mbox = 0;
@@ -63,11 +71,11 @@ int mbox_create(char *name, unsigned int owner, void (*client)(void))
  *
  * Return 0 on success, return -1 on error.
  */
-int mbox_delete(unsigned int id)
+int mbox_delete(unsigned int mid)
 {
 	mbox_t *mbp, *target;
 
-	if (!(target = mbox_find(id)))
+	if (!(target = mbox_find(mid)))
 	{
 		return(-1);
 	}
@@ -101,7 +109,7 @@ int mbox_delete(unsigned int id)
 	return(0);
 }
 
-void mbox_show(void)
+void mbox_list(void)
 {
 	mbox_t *mbp;
 
@@ -117,16 +125,26 @@ void mbox_show(void)
 	}
 }
 
+void mbox_show(unsigned int mid)
+{
+	mbox_t *mbp;
+
+	if (!(mbp = mbox_find(mid)))
+		return;
+	printf("mailbox(%d) owner=%08X mbox=%p client=%p %s\n",
+		mbp->id, mbp->owner, mbp->mbox, mbp->client, mbp->name);
+}
+
 /*
  * Find the mailbox associated with the caller specified mailbox id.
  */
-static mbox_t *mbox_find(unsigned int id)
+static mbox_t *mbox_find(unsigned int mid)
 {
 	mbox_t *mbp;
 
 	for (mbp = mbox_master; mbp; mbp = mbp->link)
 	{
-		if (mbp->id == id)
+		if (mbp->id == mid)
 		{
 			return(mbp);
 		}
@@ -163,8 +181,6 @@ mail_t *mail_create(unsigned int id, mailtype_e type, void *body, size_t size)
 		return(0);
 	}
 
-	confirm_owner(mbp->owner);
-
 	printf("Creating mail message from owner(%08X)  mbox(%s) ... \n", mbp->owner, mbp->name);
 	if (!(mailp = (mail_t *)malloc(sizeof(*mailp))))
 	{
@@ -188,6 +204,7 @@ void *mail_read(unsigned int id)
 	return(0);
 }
 
+#if 0
 static unsigned int this_owner = 0;
 
 unsigned int set_owner(void)
@@ -206,3 +223,4 @@ int confirm_owner(unsigned int owner)
 {
 	return(owner == this_owner);
 }
+#endif

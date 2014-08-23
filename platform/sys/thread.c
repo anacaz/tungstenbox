@@ -18,9 +18,14 @@
 
 #define FORWARD	/* */
 
+FORWARD void thread_init(void);
 FORWARD void thread_reset(int tid);
+FORWARD int thread_new(void (*startup)(void *));
 FORWARD void *thread_start(void *);
-FORWARD int thread_new(void *(*startup)(void *));
+FORWARD void thread_default(void *arg);
+FORWARD void thread_show(void);
+FORWARD void thread_print(unsigned int tid);
+FORWARD void thread_stop(void *arg);
 
 FORWARD static int thread_find(int tid);
 
@@ -40,17 +45,16 @@ void thread_reset(int tid)
 {
 	int index;
 
-	if ((index = thread_find(-1)) == -1)
-	{
-		THREAD_RESET(index);
-	}
+	if ((index = thread_find(tid)) == -1)
+		return;
+	THREAD_RESET(index);
 }
 
 /*
  * This routine bundles all of the house keeping for thread launch control and management
  * in one place.
  */
-int thread_new(void *(*startup)(void *))
+int thread_new(void (*startup)(void *))
 {
 	threadctl_t *tp;
 	int index;
@@ -69,47 +73,85 @@ printf("%s: %d = thread_find(-1)\n", __FUNCTION__, index);
 	tp = &threads[index];
 	tp->tid = index;
 	snprintf(tp->name, 31, "thread-%d", tp->tid);
-	if (!startup)
-		startup = thread_start;
-	pthread_create(&tp->t, 0, startup, (void *)tp);
+	tp->func = startup;					/* Load the startup function */
+	pthread_create(&tp->t, 0, thread_start, (void *)tp);
 	return(tp->tid);
 }
 
+/*
+ * This is the startup wrapper function that will pass control to the user specified thread
+ * function from thread_new().
+ */
 void *thread_start(void *arg)
 {
 	threadctl_t *tp;
-	unsigned int owner = get_owner();
 
 	tp = (threadctl_t *)arg;
-	tp->mid = mbox_create(tp->name, owner, 0);
-printf("creating ... %d = mbox_create(%s, %08X, %d)\n", tp->mid, tp->name, owner, 0);
+	tp->mid = mbox_create(tp->name, tp->tid, 0);		/* Create the thread mailbox */
+printf("creating ... %d = mbox_create(%s, %08X, %d)\n", tp->mid, tp->name, tp->tid, 0);
+	if (tp->func)
+		(*tp->func)(tp);				/* Pass control to the thread function */
+	thread_stop(tp);					/* Stop the thread */
 	return(0);
+}
+
+void thread_default(void *arg)
+{
+	threadctl_t *tp;
+	unsigned int seconds;
+
+	tp = (threadctl_t *)arg;
+	seconds = 1;
+	printf("**** %s: %s sleeping for %d second(s)\n", __FUNCTION__, tp->name, seconds);
+	sleep(seconds);
 }
 
 void thread_show(void)
 {
+	void mbox_show(unsigned int mid);
 	int index;
+	int count;
 
-	for (index = 0; index < CONFIG_THREADMAX; ++index)
+	for (count = index = 0; index < CONFIG_THREADMAX; ++index)
 	{
 		threadctl_t *tp = &threads[index];
 
 		if (tp->tid == -1)
 			continue;
+		++count;
 		printf("thread(%d): t(%p) mid(%d) func(%p) %s\n", 
 			tp->tid, &tp->t, tp->mid, tp->func, tp->name);
+		mbox_show(tp->mid);
 	}
+	printf("%d active threads found\n", count);
 }
 
-int thread_stop(int tid)
+void thread_print(unsigned int tid)
 {
-	int index, status;
+	threadctl_t *tp;
+	int index;
 
-	if ((index = thread_find(tid)) == -1)
-		return(-1);
-	status = mbox_delete(threads[index].mid);
-	printf("%d = mbox_delete(%d)\n", status, threads[index].mid);
-	return(status);
+	if ((index = thread_find(-1)) == -1)
+	{
+		printf("error: invalid tid %d\n", tid);
+		return;
+	}
+	tp = &threads[index];
+	printf("thread(%-16s): id(%d) t(%p) mid(%d) func(%p)\n", 
+		tp->name, tp->tid, &tp->t, tp->mid, tp->func);
+}
+
+void thread_stop(void *arg)
+{
+	threadctl_t *tp;
+	int index;
+
+	tp = (threadctl_t *)arg;
+printf("THREAD STOP: %s\n", tp->name);
+	tp->status = mbox_delete(tp->mid);
+	printf("%d = mbox_delete(%d)\n", tp->status, tp->mid);
+	thread_reset(tp->tid);
+	pthread_exit(&tp->status);
 }
 
 /*

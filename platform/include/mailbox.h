@@ -56,7 +56,8 @@ struct mail
 int mbox_create(char *name, unsigned int owner, void (*client)(void));
 int mbox_send(unsigned int owner, void *mail);
 void *mbox_read(unsigned int id);
-void mbox_show(void);
+void mbox_list(void);
+void mbox_show(unsigned int mid);
 int mbox_delete(unsigned int id);
 
 /*

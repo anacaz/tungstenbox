@@ -31,16 +31,18 @@ int main(int argc, char **argv)
 	}
 
 	int count = strtol(*++argv, (char **)0, 0);
-	printf("count = %d\n", count);
 
+printf("ALLOC count=%d ...\n", count);
 	if (!(tidlist = (int *)malloc(sizeof(int)*count)))
 	{
 		printf("unable to allocate tidlist\n");
 		exit(-1);
 	}
 
+printf("INIT ...\n");
 	main_init();
 	thread_init();
+	thread_show();
 
 	for (index = 0; index < count; ++index)
 	{
@@ -53,16 +55,19 @@ printf("CREATE ...\n");
 		/*
 		 * Each mail box is created in the main_thread() start up routine.
 		 */
-		tidlist[index] = thread_new(thread_start);
+		tidlist[index] = thread_new(thread_default);
 	}
 
-	sleep(2);
+printf("WAIT ...\n");
 	thread_show();
+	sleep(3);
 	// mbox_show();
 
 	/*
-	 * BUG!!!  This only deletes the mailboxes now we need to delete the threads!!!
+	 * Stop all threads.
 	 */
+printf("STOP ...\n");
+#if 0
 	for (index = 0; index < count; ++index)
 	{
 		int status;
@@ -70,12 +75,22 @@ printf("CREATE ...\n");
 		printf("deleting ... ");
 		status = thread_stop(tidlist[index]);
 	}
+#endif
+	thread_show();
 
+printf("FREE ...\n");
+	free(tidlist);
+
+#if 0
+	/*
+	 * Mail message tests here!!!
+	 */
 	int mbox1;
 
 	mbox1 = mbox_create("control", get_owner(), 0);
 
 	mail_t *mailp = mail_create(mbox1, MT_INFO, 0, 0);
+#endif
 
 	printf("TungstenBox(tm) isalive!!!\n");
 	exit(0);
@@ -83,7 +98,9 @@ printf("CREATE ...\n");
 
 void main_init(void)
 {
+#if 0
 printf("%s: this_owner=%X\n", __FUNCTION__, get_owner());
 	set_owner();
 printf("%s: this_owner=%X\n", __FUNCTION__, get_owner());
+#endif
 }
