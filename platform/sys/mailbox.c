@@ -160,7 +160,7 @@ static unsigned int mbox_assign(void)
 	static unsigned int mbox_id = 0;
 
 	++mbox_id;
-// printf("%s: mbox_id=%d\n", __FUNCTION__, mbox_id);
+printf("<<<< %s: mbox_id=%d\n", __FUNCTION__, mbox_id);
 	return(mbox_id);
 }
 

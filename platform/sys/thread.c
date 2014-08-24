@@ -20,7 +20,7 @@
 
 FORWARD void thread_init(void);
 FORWARD void thread_reset(int tid);
-FORWARD int thread_new(void (*startup)(void *));
+FORWARD int thread_new(const char *name, void (*func)(void *));
 FORWARD void *thread_start(void *);
 FORWARD void thread_default(void *arg);
 FORWARD void thread_show(void);
@@ -54,15 +54,12 @@ void thread_reset(int tid)
  * This routine bundles all of the house keeping for thread launch control and management
  * in one place.
  */
-int thread_new(void (*startup)(void *))
+int thread_new(const char *name, void (*func)(void *))
 {
 	threadctl_t *tp;
 	int index;
 
-	index = thread_find(-1);
-printf("%s: %d = thread_find(-1)\n", __FUNCTION__, index);
-	// if ((index = thread_find(-1)) == -1)
-	if (index == -1)
+	if ((index = thread_find(-1)) == -1)
 	{
 		printf("error: no more thread slots available!!!\n");
 		return(-1);
@@ -71,9 +68,9 @@ printf("%s: %d = thread_find(-1)\n", __FUNCTION__, index);
 	 * Each mail box is created in the thread_start() start up routine.
 	 */
 	tp = &threads[index];
-	tp->tid = index;
-	snprintf(tp->name, 31, "thread-%d", tp->tid);
-	tp->func = startup;					/* Load the startup function */
+	tp->tid = index;					/* BUG!!! randomize for reuse */
+	snprintf(tp->name, 31, "%s-%d", name, tp->tid);
+	tp->func = func;					/* Load the startup function */
 	pthread_create(&tp->t, 0, thread_start, (void *)tp);
 	return(tp->tid);
 }

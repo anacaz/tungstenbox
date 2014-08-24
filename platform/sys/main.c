@@ -50,32 +50,28 @@ printf("INIT ...\n");
 	}
 
 printf("CREATE ...\n");
-	for (index = 0; index < count; ++index)
+	extern void mon_main(void *);
+
+	index = 0;
+	tidlist[index++] = thread_new("monitor", mon_main);
+
+	for (; index < count; ++index)
 	{
 		/*
 		 * Each mail box is created in the main_thread() start up routine.
 		 */
-		tidlist[index] = thread_new(thread_default);
+		tidlist[index] = thread_new("thread", thread_default);
 	}
 
 printf("WAIT ...\n");
 	thread_show();
-	sleep(3);
+	sleep(5);
 	// mbox_show();
 
 	/*
 	 * Stop all threads.
 	 */
 printf("STOP ...\n");
-#if 0
-	for (index = 0; index < count; ++index)
-	{
-		int status;
-
-		printf("deleting ... ");
-		status = thread_stop(tidlist[index]);
-	}
-#endif
 	thread_show();
 
 printf("FREE ...\n");

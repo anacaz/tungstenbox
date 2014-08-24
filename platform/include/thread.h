@@ -7,6 +7,7 @@
  *
  * rfa - 140822
  */
+#include <pthread.h>
 
 typedef struct threadctl threadctl_t;
 
@@ -31,7 +32,7 @@ do \
 
 void thread_init(void);
 void thread_reset(int tid);
-int thread_new(void (*startup)(void *));
+int thread_new(const char *name, void (*startup)(void *));
 void *thread_start(void *);
 void thread_default(void *);
 void thread_show(void);

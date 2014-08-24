@@ -5,13 +5,14 @@ CC=	gcc
 CFILES=	main.c mailbox.c thread.c
 OFILES=	$(CFILES:%.c=%.o)
 CFLAGS=	-DLINUX -I. -I../include -I/usr/include
+LFLAGS= -lmon -L../apps/monitor
 
 TARGETS	= sys
 
 all: $(TARGETS)
 
 sys: $(OFILES)
-	$(CC) $(CFLAGS) -o $@ $(OFILES)
+	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $(OFILES)
 
 .c.o: 
 	$(CC) $(CFLAGS) -c $<
