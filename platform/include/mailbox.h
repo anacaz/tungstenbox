@@ -20,7 +20,7 @@ struct mbox
 	unsigned int	id;			/* Identifier */
 	unsigned int	owner;			/* Owner */
 	mail_t		*mbox;			/* Mailbox buffer */
-	void		(*client)(void);	/* Mailbox call back handler */
+	void		(*client)(void *);	/* Mailbox call back handler */
 };
 
 /*
@@ -53,7 +53,7 @@ struct mail
 /*
  * Mailbox APIs.
  */
-int mbox_create(char *name, unsigned int owner, void (*client)(void));
+int mbox_create(char *name, unsigned int owner, void (*client)(void *));
 int mbox_send(unsigned int owner, void *mail);
 void *mbox_read(unsigned int id);
 void mbox_list(void);

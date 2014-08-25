@@ -15,6 +15,7 @@
 
 FORWARD static mbox_t *mbox_find(unsigned int mid);
 FORWARD static unsigned int mbox_assign(void);
+FORWARD static void mbox_default(void *arg);
 
 static mbox_t *mbox_master = 0;
 
@@ -32,7 +33,7 @@ static mbox_t *mbox_master = 0;
  *
  * Return the mailbox id upon success, return -1 on error.
  */
-int mbox_create(char *name, unsigned int owner, void (*client)(void))
+int mbox_create(char *name, unsigned int owner, void (*client)(void *))
 {
 	static char *inbox = "-inbox";
 	mbox_t *mbp;
@@ -59,11 +60,37 @@ int mbox_create(char *name, unsigned int owner, void (*client)(void))
 	mbp->id = mbox_assign();
 	mbp->owner = owner;
 	mbp->mbox = 0;
-	mbp->client = client;
+	mbp->client = client ? client : mbox_default;		/* Set the default client routine */
 	mbp->link = mbox_master;
 	mbox_master = mbp;
 	// printf("id=%03d owner=%08X mbox=%p client=%p\n", mbp->id, mbp->owner, mbp->mbox, mbp->client);
 	return(mbp->id);
+}
+
+static void mbox_default(void *arg)
+{
+	mail_t *mail = (mail_t *)arg;
+
+	printf("%s: mail=%p\n", __FUNCTION__, mail);
+	switch (mail->hdr.type)
+	{
+	case MT_INFO:
+		printf("type: MT_INFO ");
+		break;
+	case MT_ALERT:
+		printf("type: MT_ALERT ");
+		break;
+	case MT_EVENT:
+		printf("type: MT_EVENT ");
+		break;
+	case MT_ALARM:
+		printf("type: MT_ALARM ");
+		break;
+	case MT_FAULT:
+		printf("type: MT_FAULT ");
+		break;
+	}
+	printf("\n");
 }
 
 /*

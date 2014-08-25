@@ -52,10 +52,9 @@ printf("INIT ...\n");
 printf("CREATE ...\n");
 	extern void mon_main(void *);
 
-	index = 0;
-	tidlist[index++] = thread_new("monitor", mon_main);
+	tidlist[index = 0] = thread_new("monitor", mon_main);
 
-	for (; index < count; ++index)
+	while (++index < count)
 	{
 		/*
 		 * Each mail box is created in the main_thread() start up routine.

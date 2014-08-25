@@ -12,11 +12,13 @@ TARGETS	= sys
 all: $(TARGETS)
 
 sys: $(OFILES)
+	make -C ../apps/monitor
 	$(CC) $(CFLAGS) $(LFLAGS) -o $@ $(OFILES)
 
 .c.o: 
 	$(CC) $(CFLAGS) -c $<
 
 clean:
+	make -C ../apps/monitor clean
 	rm -rf *.o $(TARGETS)
 
