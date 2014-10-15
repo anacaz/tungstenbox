@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <mailbox.h>
+#include <pthread.h>
 
 #define FORWARD	/* */
 
@@ -33,40 +34,59 @@ static mbox_t *mbox_master = 0;
  *
  * Return the mailbox id upon success, return -1 on error.
  */
+static pthread_mutex_t mbox_lock;
+
 int mbox_create(char *name, unsigned int owner, void (*client)(void *))
 {
 	static char *inbox = "-inbox";
 	mbox_t *mbp;
+	int err;
 
-	// printf("Creating mailbox \"%s\" ... ", name);
+	printf("Creating mailbox \"%s\" ... ", name);
+	printf("Waiting for lock %s ...\n", name);
+	if ((err = pthread_mutex_lock(&mbox_lock)))
+	{
+		printf("error(%d): %s unable to acuire lock!!!\n", err, name);
+		return(-1);
+	}
+	printf("Got lock %s\n", name);
 	if (!(mbp = malloc(sizeof(*mbp))))
 	{
-		printf("error: unable to allocate resource!!!\n");
+		printf("error: %s unable to allocate resource!!!\n", name);
+		pthread_mutex_unlock(&mbox_lock);
 		return(-1);
 	}
 	if (!(mbp->name = strdup(name)))
 	{
 		printf("error: unable to strdup %s!!!\n", name);
 		free(mbp);
+		pthread_mutex_unlock(&mbox_lock);
 		return(-1);
 	}
 	if (!(mbp->name = realloc(mbp->name, strlen(inbox))))
 	{
 		printf("error: unable to realloc %s!!!\n", name);
 		free(mbp);
+		pthread_mutex_unlock(&mbox_lock);
 		return(-1);
 	}
 	strcat(mbp->name, inbox);
 	mbp->id = mbox_assign();
+printf("%s: %s mbp->id=%d\n", __FUNCTION__, mbp->name, mbp->id);
 	mbp->owner = owner;
 	mbp->mbox = 0;
 	mbp->client = client ? client : mbox_default;		/* Set the default client routine */
 	mbp->link = mbox_master;
 	mbox_master = mbp;
-	// printf("id=%03d owner=%08X mbox=%p client=%p\n", mbp->id, mbp->owner, mbp->mbox, mbp->client);
+printf("id=%03d owner=%08X mbox=%p client=%p\n", mbp->id, mbp->owner, mbp->mbox, mbp->client);
+	pthread_mutex_unlock(&mbox_lock);
 	return(mbp->id);
 }
 
+/*
+ * On the off chance that a mail client is not specified by the caller of mbox_create then
+ * this routine will be the default mail client.
+ */
 static void mbox_default(void *arg)
 {
 	mail_t *mail = (mail_t *)arg;
@@ -74,21 +94,12 @@ static void mbox_default(void *arg)
 	printf("%s: mail=%p\n", __FUNCTION__, mail);
 	switch (mail->hdr.type)
 	{
-	case MT_INFO:
-		printf("type: MT_INFO ");
-		break;
-	case MT_ALERT:
-		printf("type: MT_ALERT ");
-		break;
-	case MT_EVENT:
-		printf("type: MT_EVENT ");
-		break;
-	case MT_ALARM:
-		printf("type: MT_ALARM ");
-		break;
-	case MT_FAULT:
-		printf("type: MT_FAULT ");
-		break;
+	case MT_INFO: printf("type: MT_INFO "); break;
+	case MT_ALERT: printf("type: MT_ALERT "); break;
+	case MT_EVENT: printf("type: MT_EVENT "); break;
+	case MT_ALARM: printf("type: MT_ALARM "); break;
+	case MT_FAULT: printf("type: MT_FAULT "); break;
+	default: printf("type: unknown "); break;
 	}
 	printf("\n");
 }
@@ -169,13 +180,16 @@ static mbox_t *mbox_find(unsigned int mid)
 {
 	mbox_t *mbp;
 
+// printf("%s: mid=%d\n", __FUNCTION__, mid);
 	for (mbp = mbox_master; mbp; mbp = mbp->link)
 	{
 		if (mbp->id == mid)
 		{
+// printf("%s: mbp=%X mid=%d\n", __FUNCTION__, (int)mbp, mid);
 			return(mbp);
 		}
 	}
+// printf("%s: mbp=%X mid=%d\n", __FUNCTION__, 0, mid);
 	return(0);
 }
 

@@ -68,27 +68,30 @@ int thread_new(const char *name, void (*func)(void *))
 	 * Each mail box is created in the thread_start() start up routine.
 	 */
 	tp = &threads[index];
-	tp->tid = index;					/* BUG!!! randomize for reuse */
+	tp->tid = index;			/* BUG!!! randomize for reuse */
 	snprintf(tp->name, 31, "%s-%d", name, tp->tid);
-	tp->func = func;					/* Load the startup function */
+	tp->func = func;			/* Load the startup function */
 	pthread_create(&tp->t, 0, thread_start, (void *)tp);
 	return(tp->tid);
 }
 
 /*
- * This is the startup wrapper function that will pass control to the user specified thread
- * function from thread_new().
+ * This is the startup wrapper function that will pass control to the
+ * user specified thread function from thread_new().
  */
 void *thread_start(void *arg)
 {
 	threadctl_t *tp;
 
 	tp = (threadctl_t *)arg;
-	tp->mid = mbox_create(tp->name, tp->tid, 0);		/* Create the thread mailbox */
+	/*
+	 * Create the thread mailbox.
+	 */
+	tp->mid = mbox_create(tp->name, tp->tid, 0);
 printf("creating ... %d = mbox_create(%s, %08X, %d)\n", tp->mid, tp->name, tp->tid, 0);
 	if (tp->func)
-		(*tp->func)(tp);				/* Pass control to the thread function */
-	thread_stop(tp);					/* Stop the thread */
+		(*tp->func)(tp);	/* Pass control to the thread func */
+	thread_stop(tp);		/* Stop the thread */
 	return(0);
 }
 
@@ -144,19 +147,19 @@ void thread_stop(void *arg)
 	int index;
 
 	tp = (threadctl_t *)arg;
-printf("THREAD STOP: %s\n", tp->name);
+printf("THREAD STOP: %s mid=%d\n", tp->name, tp->mid);
 	tp->status = mbox_delete(tp->mid);
-	printf("%d = mbox_delete(%d)\n", tp->status, tp->mid);
+	printf("$$$$$$ %d = mbox_delete(%d)\n", tp->status, tp->mid);
 	thread_reset(tp->tid);
 	pthread_exit(&tp->status);
 }
 
 /*
- * Find the caller specified thread id within the thread control array 'threads'.  Return
- * the array offset on success or -1 on failure.
+ * Find the caller specified thread id within the thread control array
+ * 'threads'.  Return the array offset on success or -1 on failure.
  *
- * To located an unused thread slot then search for thread id '-1'.  All reset or unused
- * thread slots will reset the thread id to -1.
+ * To located an unused thread slot then search for thread id '-1'.
+ * All reset or unused thread slots will reset the thread id to -1.
  */
 static int thread_find(int tid)
 {

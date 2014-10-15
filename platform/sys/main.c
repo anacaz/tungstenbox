@@ -57,7 +57,8 @@ printf("CREATE ...\n");
 	while (++index < count)
 	{
 		/*
-		 * Each mail box is created in the main_thread() start up routine.
+		 * Each mail box is created in the main_thread() start up
+		 * routine.
 		 */
 		tidlist[index] = thread_new("thread", thread_default);
 	}
